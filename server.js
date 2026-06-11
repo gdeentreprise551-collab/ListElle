@@ -4,7 +4,8 @@ const nodemailer = require('nodemailer');
 const path = require('path'); // AJOUT CRUCIAL
 
 const app = express();
-const PORT = 3000;
+// التعديل موجود هنا وجاهز للاستضافة أونلاين
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
@@ -98,6 +99,7 @@ setInterval(() => {
     });
 }, 10000); 
 
+// تشغيل السيرفر ليتماشى مع البيئة المحلية والمنصة السحابية
 app.listen(PORT, () => {
-    console.log(`🚀 Serveur ListElle actif sur http://localhost:${PORT}`);
+    console.log(`🚀 Serveur ListElle actif sur le port: ${PORT}`);
 });
