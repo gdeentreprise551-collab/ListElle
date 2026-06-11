@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ListElle - Application</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="loginPage" class="page" style="max-width: 420px;">
+        <h1 style="color: #000000; margin-bottom: 25px; font-weight: bold; font-size: 3.5rem; letter-spacing: 2px; text-align: center;">TasK Flow</h1>
+        <div class="card">
+            <h3 style="color: var(--primary-color);">Connexion</h3>
+            <form id="loginForm" autocomplete="off" onsubmit="return false;">
+                <input type="email" id="authEmail" placeholder="Email" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); this.value='';">
+                <input type="password" id="authPassword" placeholder="Mot de passe" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); this.value='';">
+                <button id="loginBtn" type="button" style="width:100%;">Valider</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="appContainer" class="page">
+        <div class="nav-bar">
+            <button onclick="window.prepareAddPage()" style="background: #ebcae7;">Board</button>
+            <button onclick="window.prepareAddPage('add')" style="background: #dacce6;">Ajouter</button>
+            <button id="adminNavBtn" class="hidden" onclick="window.showPage('adminPage')" style="background: #abbcd4;">Admin</button>
+            <button id="themeToggleBtn" style="background:#5c6f84; max-width: 45px; padding:12px 5px;">🌙</button>
+            <button id="logoutBtn" style="background:#93c1d5; max-width: 40px; padding:12px 5px;">X</button>
+        </div>
+
+        <div id="tasksPage" class="sub-page" style="width: 100%;">
+            <div class="filter-section">
+                <input type="text" id="searchBar" placeholder="🔍 Rechercher une tâche..." style="margin-bottom: 10px;">
+                <div class="filter-btn-group">
+                    <button id="btnFilterAll" class="active" onclick="window.setPeriodFilter('all')">Tout</button>
+                    <button id="btnFilterToday" onclick="window.setPeriodFilter('today')">Aujourd'hui</button>
+                    <button id="btnFilterWeek" onclick="window.setPeriodFilter('week')">Cette semaine</button>
+                    <button id="btnFilterOverdue" onclick="window.setPeriodFilter('overdue')" style="color: var(--danger-color); font-weight: bold;">En retard ⚠️</button>
+                </div>
+
+                <div id="teamTasksWidget" class="team-widget-container hidden">
+                    <h4 style="color: #eb57d0; margin-bottom: 10px; font-size: 0.95rem; text-align: left;">👥 Membres de l'équipe :</h4>
+                    <div id="statsList"></div>
+                </div>
+            </div>
+
+            <div class="kanban-board">
+                <div class="kanban-column" id="col-todo" data-status="À faire">
+                    <div class="column-header">
+                        <h4>📋 À FAIRE</h4>
+                        <span id="count-todo" style="font-size: 0.8rem; opacity: 0.7;">(0)</span>
+                    </div>
+                    <div class="task-list-container" id="todoList"></div>
+                </div>
+
+                <div class="kanban-column" id="col-progress" data-status="En cours">
+                    <div class="column-header">
+                        <h4>⚡ EN COURS</h4>
+                        <span id="count-progress" style="font-size: 0.8rem; opacity: 0.7;">(0)</span>
+                    </div>
+                    <div class="task-list-container" id="progressList"></div>
+                </div>
+
+                <div class="kanban-column" id="col-done" data-status="Terminé">
+                    <div class="column-header">
+                        <h4>✅ TERMINÉ</h4>
+                        <span id="count-done" style="font-size: 0.8rem; opacity: 0.7;">(0)</span>
+                    </div>
+                    <div class="task-list-container" id="doneList"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="addPage" class="sub-page hidden" style="width: 100%; max-width: 420px;">
+            <div class="card">
+                <input type="hidden" id="editTaskId">
+                <input type="hidden" id="editTaskOldTitle">
+                <h3 id="formPageTitle">Ajouter une tâche</h3>
+                
+                <input type="text" id="taskInput" placeholder="Titre">
+                <input type="text" id="detailsInput" placeholder="Détails">
+                
+                <label for="statusInput" style="font-size: 0.85rem; color: var(--text-main); font-weight:600; display:block; margin-bottom:5px;">Statut de la tâche :</label>
+                <select id="statusInput">
+                    <option value="À faire">À faire</option>
+                    <option value="En cours">En cours</option>
+                    <option value="Terminé">Terminé</option>
+                </select>
+
+                <label for="daysInput" style="font-size: 0.85rem; color: var(--text-main); font-weight:600; display:block; margin-bottom:5px;">Nombre de jours :</label>
+                <input type="number" id="daysInput" placeholder="Ex: 5" oninput="window.calculateDate()">
+                
+                <p style="color: var(--text-main); font-size: 0.95rem; margin-top: 15px; margin-bottom: 20px;">
+                    Date finale : <strong id="calculatedDateDisplay" style="color: #6ea0dd;">-</strong>
+                </p>
+                
+                <input type="text" id="locationInput" placeholder="Localisation (Optionnelle)">
+
+                <div id="adminAssignSection" class="hidden" style="margin-bottom: 15px; text-align: left;">
+                    <label for="assignUserInput" style="font-size: 0.85rem; color: var(--text-main); font-weight:600; display:block; margin-bottom:5px;">Assigner à un utilisateur :</label>
+                    <select id="assignUserInput" style="width:100%; padding:10px; border-radius:4px; border:1px solid #ccc; background: var(--bg-card); color: var(--text-main);">
+                        <option value="">-- Choisir un utilisateur (Optionnel) --</option>
+                    </select>
+                </div>
+
+                <button id="addBtn">Enregistrer</button>
+                <button onclick="window.showPage('tasksPage')" style="background: linear-gradient(45deg, #6894d3, #aec5e9); margin-top:10px;">Retour</button>
+            </div>
+        </div>
+
+        <div id="adminPage" class="sub-page hidden" style="width: 100%; max-width: 420px;">
+            <div class="card">
+                <h3>Admin Panel</h3>
+                
+                <div style="margin-bottom: 25px; width:100%;">
+                    <h4 style="color:#85ace3; margin-bottom: 10px; text-align: left;">Historique des actions (Logs) :</h4>
+                    <div id="logsList">Chargement des logs...</div>
+                </div>
+
+                <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
+                
+                <h4 style="color:#59c3ba; margin-bottom: 10px;">Créer un utilisateur</h4>
+                <input type="email" id="newUserEmail" placeholder="Email du nouvel utilisateur">
+                <input type="password" id="newUserPassword" placeholder="Mot de passe">
+                <button id="createNewUserBtn">Ajouter l'utilisateur</button>
+                <button onclick="window.showPage('tasksPage')" style="background: linear-gradient(45deg, #83a8dd, #aec5e9); margin-top:10px;">Retour</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="scriptv1.js"></script>
+</body>
+</html>

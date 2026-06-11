@@ -1,0 +1,272 @@
+/* 1. الخلفية العامة (Elegant Gradient) */
+body {
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, #bdc9f0 0%, #dad1ff 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Variables de styles */
+:root {
+    --primary-color: #899db0;
+    --secondary-color: #93a8d5;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --text-main: #2c3e50;
+    --border-color: #f0d9e5;
+    --danger-color: #e74c3c;
+}
+
+[data-theme="dark"] {
+    --primary-color: #5c6f84;
+    --secondary-color: #6579a3;
+    --card-bg: rgba(29, 29, 38, 0.95);
+    --text-main: #f3e5f5;
+    --border-color: #322933;
+}
+
+/* 2. حاوية الصفحات */
+.page {
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hidden { display: none !important; }
+
+/* 3. حاوية التطبيق الرئيسية */
+#appContainer {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 4. الـ Card (Glassmorphism Effect) */
+.card {
+    width: 100%;
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 25px;
+    box-shadow: 0 15px 35px rgba(129, 137, 252, 0.2);
+    backdrop-filter: blur(10px);
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 5. شريط التنقل (Navigation) */
+.nav-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    justify-content: center;
+    width: 100%;
+    max-width: 420px;
+}
+
+.nav-bar button {
+    flex: 1;
+    width: auto;
+    padding: 12px 15px;
+    font-size: 0.95rem;
+    color: #4a4a4a;
+}
+.nav-bar button:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+
+/* 6. عناصر الفورم (Modern Inputs) */
+input, select {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border: 2px solid #f3e8ff;
+    border-radius: 12px;
+    background: #fafafa;
+    box-sizing: border-box;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    transition: 0.3s;
+}
+[data-theme="dark"] input, [data-theme="dark"] select {
+    background: #2d2d3d;
+    border-color: #322933;
+}
+input:focus, select:focus { border-color: #98acce; outline: none; }
+
+/* 7. الأزرار (Chic Style) */
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    color: white;
+    font-weight: 600;
+    background: linear-gradient(45deg, #e5c9e9, #dacce6);
+    transition: 0.3s;
+}
+button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(192, 38, 211, 0.3); }
+
+/* 8. شريط البحث والفلترة */
+.filter-section {
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+}
+.filter-btn-group {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+.filter-btn-group button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    background: #e2e8f0;
+    color: #4a5568;
+    border-radius: 20px;
+    width: auto;
+}
+.filter-btn-group button.active {
+    background: #5c6f84;
+    color: white;
+}
+
+/* 9. الـ Widget الجديد ديال الفريق */
+.team-widget-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 8px 20px rgba(129, 137, 252, 0.1);
+}
+#statsList div {
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+#statsList div:hover { background: rgba(137, 157, 176, 0.1); }
+
+/* 10. تصميم الـ Kanban Board */
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    width: 100%;
+    align-items: start;
+}
+@media (max-width: 768px) {
+    .kanban-board { grid-template-columns: 1fr; }
+}
+.kanban-column {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(5px);
+    border: 1px dashed var(--border-color);
+    border-radius: 20px;
+    padding: 15px;
+    min-height: 400px;
+}
+[data-theme="dark"] .kanban-column { background: rgba(29, 29, 38, 0.4); }
+
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #ebcae7;
+}
+.column-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.task-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 350px;
+}
+
+/* 11. بطاقات المهام (Task Cards) */
+.task-card {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 15px;
+    border: 1px solid var(--border-color);
+    border-left: 5px solid #edccf1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+    cursor: grab;
+    text-align: left;
+}
+.task-card.dragging { opacity: 0.4; transform: scale(0.98); }
+.task-done { text-decoration: line-through; opacity: 0.6; }
+
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 6px;
+    color: white;
+    margin-top: 5px;
+    width: max-content;
+}
+.task-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.task-actions button { width: auto; padding: 5px 10px; font-size: 0.8rem; border-radius: 8px; }
+
+/* 12. زر الحذف الدائري */
+.del-btn {
+    background: #e2f1fe !important;
+    color: #e70d0d !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-weight: bold;
+    box-shadow: none !important;
+}
+.del-btn:hover { transform: scale(1.1); }
+
+/* 13. صندوق الـ Logs */
+#logsList {
+    max-height: 250px;
+    overflow-y: auto;
+    background: #fafafa;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 0.8rem;
+}
+[data-theme="dark"] #logsList { background: #252533; }
+.log-item {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border-color);
+    color: var(--text-main);
+    line-height: 1.4;
+}
+
+/* 14. نصوص وعناوين */
+h3 { color: #23649d; text-align: center; margin-bottom: 20px; }
+small { color: #6b7280; font-size: 0.8em; }
