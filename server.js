@@ -8,20 +8,47 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+
+// تشغيل وتوجيه الفايلات الثابتة مع إجبار المتصفح يقراهم صحاح
+app.use(express.static(path.join(__dirname), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (filePath.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+    }
+}));
 
 // الإتصال بـ Firebase بسحابة آمنة
 if (!admin.apps.length) {
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    
+    if (privateKey && !privateKey.includes('\n')) {
+        privateKey = privateKey
+            .replace(/-----BEGIN PRIVATE KEY-----/, '-----BEGIN PRIVATE KEY-----\n')
+            .replace(/-----END PRIVATE KEY-----/, '\n-----END PRIVATE KEY-----')
+            .replace(/\s+/g, (match, offset, string) => {
+                if (offset > 25 && offset < string.length - 25) {
+                    return '\n';
+                }
+                return match;
+            });
+    } else if (privateKey) {
+        privateKey = privateKey.replace(/\\n/g, '\n');
+    }
+
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
+            privateKey: privateKey,
         })
     });
 }
 const db = admin.firestore();
 
+// صفحة البداية
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -70,7 +97,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// هاد الـ Route غيعيط عليها Vercel بوحدو كل 30 دقيقة باش يصيفط الإيميلات
+// هاد الـ Route غيعيط عليها Vercel يصيفط الإيميلات
 app.get('/api/cron-check', async (req, res) => {
     const aujourdhui = new Date().toISOString().split('T')[0];
     try {
@@ -103,6 +130,9 @@ app.get('/api/cron-check', async (req, res) => {
         res.status(500).json({ error: "Erreur lors du cron" });
     }
 });
+
+// تصدير التطبيق لبيئة Vercel Serverless
+module.exports = app;
 
 app.listen(PORT, () => {
     console.log(`🚀 Serveur actif : ${PORT}`);
