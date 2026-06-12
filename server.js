@@ -9,16 +9,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// تشغيل وتوجيه الفايلات الثابتة مع إجبار المتصفح يقراهم صحاح
-app.use(express.static(path.join(__dirname), {
-    setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.js')) {
-            res.setHeader('Content-Type', 'application/javascript');
-        } else if (filePath.endsWith('.css')) {
-            res.setHeader('Content-Type', 'text/css');
-        }
-    }
-}));
+// قراءة الفايلات الثابتة من وسط فولدر public الموجه لـ Vercel
+app.use(express.static(path.join(__dirname, 'public')));
 
 // الإتصال بـ Firebase بسحابة آمنة
 if (!admin.apps.length) {
@@ -48,9 +40,9 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-// صفحة البداية
+// توجيه المتصفح لـ index.html لي داخل public ديريكت
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // جلب التمارين من Firebase Firestore
@@ -131,7 +123,7 @@ app.get('/api/cron-check', async (req, res) => {
     }
 });
 
-// تصدير التطبيق لبيئة Vercel Serverless
+// تصدير التطبيق لبيئة Vercel
 module.exports = app;
 
 app.listen(PORT, () => {
