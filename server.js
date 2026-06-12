@@ -1,82 +1,109 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const admin = require('firebase-admin');
+require('dotenv').config(); 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-
-// تشغيل الملفات الثابتة من المجلد الرئيسي
 app.use(express.static(path.join(__dirname)));
 
-// الذاكرة المؤقتة بديلة لـ SQLite لتفادي خطأ Vercel
-let tachesInMemory = [];
+// الإتصال بـ Firebase بسحابة آمنة
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
+        })
+    });
+}
+const db = admin.firestore();
 
-// الصفحة الرئيسية
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// جلب التمارين أو المهام
-app.get('/taches', (req, res) => {
-    res.json(tachesInMemory);
+// جلب التمارين من Firebase Firestore
+app.get('/taches', async (req, res) => {
+    try {
+        const snapshot = await db.collection('taches').get();
+        const taches = [];
+        snapshot.forEach(doc => {
+            taches.push({ id: doc.id, ...doc.data() });
+        });
+        res.json(taches);
+    } catch (error) {
+        res.status(500).json({ error: "Erreur lors de la récupération" });
+    }
 });
 
-// إضافة مهمة جديدة
-app.post('/taches', (req, res) => {
+// إضافة مهمة جديدة لـ Firebase Firestore
+app.post('/taches', async (req, res) => {
     const { titre, date_tache, email_utilisateur } = req.body;
-    
     if (!titre || !date_tache || !email_utilisateur) {
         return res.status(400).json({ error: "Données incomplètes" });
     }
-
     const nouvelleTache = {
-        id: tachesInMemory.length + 1,
         titre: titre,
         date_tache: date_tache,
         email_utilisateur: email_utilisateur,
-        email_envoye: 0
+        email_envoye: 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
-
-    tachesInMemory.push(nouvelleTache);
-    res.json(nouvelleTache);
-});
-
-// إعدادات Gmail لإرسال الإيميلات
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'gdeentreprise551@gmail.com', 
-        pass: 'guztxwqqmykhksxc' 
+    try {
+        const docRef = await db.collection('taches').add(nouvelleTache);
+        res.json({ id: docRef.id, ...nouvelleTache });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur lors de l'ajout" });
     }
 });
 
-// الروبوت الخاص بالإيميلات يعمل بسلاسة
-setInterval(() => {
+// إعدادات إرسال الإيميل
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_USER, 
+        pass: process.env.GMAIL_PASS 
+    }
+});
+
+// هاد الـ Route غيعيط عليها Vercel بوحدو كل 30 دقيقة باش يصيفط الإيميلات
+app.get('/api/cron-check', async (req, res) => {
     const aujourdhui = new Date().toISOString().split('T')[0];
+    try {
+        const snapshot = await db.collection('taches')
+            .where('date_tache', '<=', aujourdhui)
+            .where('email_envoye', '==', 0)
+            .get();
 
-    tachesInMemory.forEach((tache) => {
-        if (tache.date_tache <= aujourdhui && tache.email_envoye === 0 && tache.email_utilisateur) {
-            const mailOptions = {
-                from: 'gdeentreprise551@gmail.com',
-                to: tache.email_utilisateur, 
-                subject: `🔔 Rappel Task Flow : ${tache.titre}`,
-                text: `Bonjour !\n\nC'est le moment de faire votre tâche : "${tache.titre}".\n\nBonne journée !`
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.log("Erreur d'envoi :", error);
-                } else {
-                    console.log(`✉️ Email envoyé avec succès : ${tache.titre}`);
-                    tache.email_envoye = 1; // تحديث الحالة في الذاكرة
-                }
-            });
+        if (snapshot.empty) {
+            return res.json({ message: "Aucun email à envoyer." });
         }
-    });
-}, 10000);
+
+        let emailsSent = 0;
+        for (const doc of snapshot.docs) {
+            const tache = doc.data();
+            if (tache.email_utilisateur) {
+                const mailOptions = {
+                    from: process.env.GMAIL_USER,
+                    to: tache.email_utilisateur, 
+                    subject: `🔔 Rappel Task Flow : ${tache.titre}`,
+                    text: `Bonjour !\n\nC'est le moment de faire votre tâche : "${tache.titre}".\n\nBonne journée !`
+                };
+                await transporter.sendMail(mailOptions);
+                await db.collection('taches').doc(doc.id).update({ email_envoye: 1 });
+                emailsSent++;
+            }
+        }
+        res.json({ success: true, message: `${emailsSent} email(s) envoyé(s).` });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur lors du cron" });
+    }
+});
 
 app.listen(PORT, () => {
-    console.log(`🚀 Serveur Task Flow actif sur Vercel : ${PORT}`);
+    console.log(`🚀 Serveur actif : ${PORT}`);
 });
