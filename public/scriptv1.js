@@ -77,7 +77,6 @@ const createLog = (actionType, taskTitle, details = "") => {
     push(ref(db, 'logs'), logData).catch(e => console.log("Error creating log:", e));
 };
 
-// --- LOGIQUE DRAG AND DROP HANDLERS ---
 let draggedTaskId = null;
 let draggedTaskTitle = null;
 
@@ -85,6 +84,8 @@ const setupDragAndDropEvents = () => {
     const columns = document.querySelectorAll('.kanban-column');
     
     columns.forEach(column => {
+        // حيدنا التكرار باش الـ Listeners ما يتوبلوش
+        column.removeEventListener('dragover', null);
         column.addEventListener('dragover', (e) => {
             e.preventDefault(); 
             column.classList.add('drag-over');
@@ -258,6 +259,7 @@ const renderTasks = () => {
     if(cProgress) cProgress.innerText = `(${counts["En cours"]})`;
     if(cDone) cDone.innerText = `(${counts["Terminé"]})`;
 
+    // إعادة تفعيل الـ Drag start والـ end على الكروت الجديدة
     document.querySelectorAll('.task-card').forEach(card => {
         card.addEventListener('dragstart', () => {
             card.classList.add('dragging');
@@ -420,7 +422,6 @@ window.del = (id) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
-    setupDragAndDropEvents(); 
 
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     if(themeToggleBtn) themeToggleBtn.onclick = toggleTheme;
@@ -448,8 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Déconnexion réussie");
                     const loginForm = document.getElementById('loginForm');
                     if (loginForm) loginForm.reset(); 
-                    document.getElementById('authEmail').removeAttribute('readonly');
-                    document.getElementById('authPassword').removeAttribute('readonly');
                 })
                 .catch(err => showToast("Erreur: " + err.message, "error"));
         };
@@ -475,4 +474,75 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const currentAdminOrUserEmail = auth.currentUser.email;
-            const isAdmin = currentAdminOrUserEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase
+            const isAdmin = currentAdminOrUserEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+            
+            const finalUserEmail = (isAdmin && assignedEmail) ? assignedEmail : currentAdminOrUserEmail;
+
+            const taskData = {
+                titre: taskInput.value.trim(),
+                details: document.getElementById('detailsInput').value.trim(),
+                location: document.getElementById('locationInput').value.trim(),
+                status: statusInput,
+                date: finalDate,
+                userEmail: finalUserEmail,
+                userId: auth.currentUser.uid
+            };
+
+            if (editTaskId) {
+                const oldTitle = document.getElementById('editTaskOldTitle').value;
+                update(ref(db, 'taches/' + editTaskId), taskData)
+                    .then(() => {
+                        showToast("Tâche modified !");
+                        createLog("modification", taskData.titre, `Ancien titre: ${oldTitle}`);
+                        window.showPage('tasksPage');
+                    })
+                    .catch(err => showToast("Erreur: " + err.message, "error"));
+            } else {
+                push(ref(db, 'taches'), taskData)
+                    .then(() => {
+                        showToast("Tâche créée !");
+                        createLog("ajout", taskData.titre);
+                        window.showPage('tasksPage');
+                    })
+                    .catch(err => showToast("Erreur: " + err.message, "error"));
+            }
+        };
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            const emailClean = user.email.replace(/\./g, "_");
+            get(ref(db, 'users_allowed/' + emailClean)).then((snapshot) => {
+                const isAdmin = user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+                
+                if (snapshot.exists() || isAdmin) {
+                    document.getElementById('loginPage').classList.add('hidden');
+                    document.getElementById('appContainer').classList.remove('hidden');
+                    
+                    if (isAdmin) {
+                        document.getElementById('adminNavBtn').classList.remove('hidden');
+                        document.getElementById('adminAssignSection').classList.remove('hidden');
+                        listenToLogs();
+                    } else {
+                        document.getElementById('adminNavBtn').classList.add('hidden');
+                        document.getElementById('adminAssignSection').classList.add('hidden');
+                    }
+                    
+                    onValue(ref(db, 'taches'), (taskSnapshot) => {
+                        currentTasksSnapshot = taskSnapshot;
+                        renderTasks();
+                        setupDragAndDropEvents(); // تفعل هنا باش ديما الـ columns يبقاو شادين الـ Drop
+                        updateStats(taskSnapshot);
+                    });
+                } else {
+                    showToast("Accès refusé ! Vous n'êtes pas autorisé.", "error");
+                    signOut(auth);
+                }
+            }).catch(err => console.log("Auth rules error:", err));
+        } else {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('adminNavBtn').classList.add('hidden');
+        }
+    });
+});
