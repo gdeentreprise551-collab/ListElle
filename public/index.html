@@ -9,6 +9,7 @@
 </head>
 <body>
 
+    <!-- PAGE DE CONNEXION -->
     <div id="loginPage" class="page" style="max-width: 420px;">
         <h1 style="color: #000000; margin-bottom: 25px; font-weight: bold; font-size: 3.5rem; letter-spacing: 2px; text-align: center;">TasK Flow</h1>
         <div class="card">
@@ -21,6 +22,7 @@
         </div>
     </div>
 
+    <!-- CONTENEUR PRINCIPAL DE L'APPLICATION -->
     <div id="appContainer" class="page">
         <div class="nav-bar">
             <button onclick="window.prepareAddPage()" style="background: #ebcae7;">Board</button>
@@ -30,6 +32,7 @@
             <button id="logoutBtn" style="background:#93c1d5; max-width: 40px; padding:12px 5px;">X</button>
         </div>
 
+        <!-- SUB-PAGE: TABLEAU KANBAN -->
         <div id="tasksPage" class="sub-page" style="width: 100%;">
             <div class="filter-section">
                 <input type="text" id="searchBar" placeholder="🔍 Rechercher une tâche..." style="margin-bottom: 10px;">
@@ -47,6 +50,7 @@
             </div>
 
             <div class="kanban-board">
+                <!-- COLONNE À FAIRE -->
                 <div class="kanban-column" id="col-todo" data-status="À faire">
                     <div class="column-header">
                         <h4>📋 À FAIRE</h4>
@@ -55,6 +59,7 @@
                     <div class="task-list-container" id="todoList"></div>
                 </div>
 
+                <!-- COLONNE EN COURS -->
                 <div class="kanban-column" id="col-progress" data-status="En cours">
                     <div class="column-header">
                         <h4>⚡ EN COURS</h4>
@@ -63,6 +68,7 @@
                     <div class="task-list-container" id="progressList"></div>
                 </div>
 
+                <!-- COLONNE TERMINÉ -->
                 <div class="kanban-column" id="col-done" data-status="Terminé">
                     <div class="column-header">
                         <h4>✅ TERMINÉ</h4>
@@ -73,6 +79,7 @@
             </div>
         </div>
 
+        <!-- SUB-PAGE: AJOUTER / MODIFIER UNE TÂCHE -->
         <div id="addPage" class="sub-page hidden" style="width: 100%; max-width: 420px;">
             <div class="card">
                 <input type="hidden" id="editTaskId">
@@ -110,6 +117,7 @@
             </div>
         </div>
 
+        <!-- SUB-PAGE: PANEL ADMIN -->
         <div id="adminPage" class="sub-page hidden" style="width: 100%; max-width: 420px;">
             <div class="card">
                 <h3>Admin Panel</h3>
@@ -130,6 +138,7 @@
         </div>
     </div>
 
+    <!-- تفعيل السكربت كـ Module لربطه بـ Firebase بنجاح -->
     <script type="module" src="scriptv1.js"></script>
 </body>
 </html>

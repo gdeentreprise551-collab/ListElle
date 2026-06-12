@@ -130,7 +130,6 @@ window.prepareAddPage = (mode = 'list') => {
         document.getElementById('statusInput').value = "À faire";
         document.getElementById('calculatedDateDisplay').innerText = "-";
         
-        // Reset du select de l'utilisateur affecté s'il existe
         const assignUserInput = document.getElementById('assignUserInput');
         if (assignUserInput) assignUserInput.value = "";
         
@@ -173,7 +172,8 @@ const renderTasks = () => {
 
     const user = auth.currentUser;
     const isAdmin = user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
-    const searchWord = document.getElementById('searchBar').value.toLowerCase().trim();
+    const searchBar = document.getElementById('searchBar');
+    const searchWord = searchBar ? searchBar.value.toLowerCase().trim() : "";
     
     const todayStr = new Date().toISOString().split('T')[0];
     const sevenDaysLater = new Date();
@@ -186,7 +186,6 @@ const renderTasks = () => {
         const taskUserEmail = d.userEmail ? d.userEmail.toLowerCase().trim() : "";
         const filterEmail = selectedUserEmail ? selectedUserEmail.toLowerCase().trim() : null;
 
-        // Modification ici : L'admin voit selon le filtre, l'user voit les tâches qui lui appartiennent OU qui lui sont affectées
         let matchesFilter = isAdmin ? (!filterEmail || taskUserEmail === filterEmail) : (d.userId === user.uid || taskUserEmail === user.email.toLowerCase().trim());
         
         if (searchWord && d.titre && !d.titre.toLowerCase().includes(searchWord)) {
@@ -251,9 +250,13 @@ const renderTasks = () => {
         }
     });
 
-    document.getElementById('count-todo').innerText = `(${counts["À faire"]})`;
-    document.getElementById('count-progress').innerText = `(${counts["En cours"]})`;
-    document.getElementById('count-done').innerText = `(${counts["Terminé"]})`;
+    const cTodo = document.getElementById('count-todo');
+    const cProgress = document.getElementById('count-progress');
+    const cDone = document.getElementById('count-done');
+    
+    if(cTodo) cTodo.innerText = `(${counts["À faire"]})`;
+    if(cProgress) cProgress.innerText = `(${counts["En cours"]})`;
+    if(cDone) cDone.innerText = `(${counts["Terminé"]})`;
 
     document.querySelectorAll('.task-card').forEach(card => {
         card.addEventListener('dragstart', () => {
@@ -308,14 +311,12 @@ const updateStats = (snapshot) => {
                     <span style="background:var(--primary-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8em;">${count} Tâches</span>
                 </div>`;
             
-            // Remplir dynamiquement la liste des utilisateurs pour l'Admin dans le formulaire
             if (email !== "inconnu" && email !== ADMIN_EMAIL.toLowerCase().trim()) {
                 usersListOptions += `<option value="${email}">${email}</option>`;
             }
         }
     }
 
-    // Injecter les options dans le select s'il existe dans le HTML
     if (assignUserInput && assignUserInput.children.length <= 1) {
         assignUserInput.innerHTML = usersListOptions;
     }
@@ -385,14 +386,12 @@ window.calculateDate = () => {
     display.innerText = baseDate.toISOString().split('T')[0];
 };
 
-// --- MODIFICATION : Lien pour forcer l'ajout dans le calendrier de l'user ou inviter ---
 window.generateCalendarLink = (titre, details, location, dateStr, userEmail) => {
     const taskDate = new Date(dateStr);
     const formatDate = (d) => d.toISOString().replace(/-|:|\.\d+/g, "");
     
     let baseLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titre)}&details=${encodeURIComponent(details)}&dates=${formatDate(taskDate)}/${formatDate(new Date(taskDate.getTime() + 3600000))}&location=${encodeURIComponent(location)}`;
     
-    // Si la tâche est affectée à un autre user, on l'ajoute en tant qu'invité obligatoire (&add=)
     if(userEmail && userEmail.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
         baseLink += `&add=${encodeURIComponent(userEmail)}`;
     }
@@ -449,8 +448,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Déconnexion réussie");
                     const loginForm = document.getElementById('loginForm');
                     if (loginForm) loginForm.reset(); 
-                    document.getElementById('authEmail').setAttribute('readonly', 'readonly');
-                    document.getElementById('authPassword').setAttribute('readonly', 'readonly');
+                    document.getElementById('authEmail').removeAttribute('readonly');
+                    document.getElementById('authPassword').removeAttribute('readonly');
                 })
                 .catch(err => showToast("Erreur: " + err.message, "error"));
         };
@@ -467,7 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const editTaskId = document.getElementById('editTaskId').value;
             const statusInput = document.getElementById('statusInput').value;
             
-            // Récupérer la valeur de l'utilisateur assigné si le select existe
             const assignUserInput = document.getElementById('assignUserInput');
             let assignedEmail = (assignUserInput && assignUserInput.value) ? assignUserInput.value.trim() : null;
             
@@ -477,89 +475,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const currentAdminOrUserEmail = auth.currentUser.email;
-            const isAdmin = currentAdminOrUserEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
-
-            // Si l'admin a choisi un utilisateur, la tâche appartiendra à cet utilisateur choisi
-            const finalTaskUserEmail = (isAdmin && assignedEmail) ? assignedEmail : currentAdminOrUserEmail;
-            
-            const taskData = {
-                userId: (isAdmin && assignedEmail) ? "ASSIGNED_BY_ADMIN" : auth.currentUser.uid, 
-                userEmail: finalTaskUserEmail,
-                titre: taskInput.value,
-                details: document.getElementById('detailsInput').value,
-                date: finalDate,
-                location: document.getElementById('locationInput').value || "" ,
-                status: statusInput
-            };
-            
-            if(editTaskId) {
-                update(ref(db, 'taches/' + editTaskId), taskData)
-                    .then(() => {
-                        showToast("Tâche modifiée avec succès !");
-                        createLog("modification", taskData.titre, `Statut: ${statusInput}`);
-                        window.showPage('tasksPage');
-                    })
-                    .catch(err => showToast("Erreur de modification: " + err.message, "error"));
-            } else {
-                push(ref(db, 'taches'), taskData).then(() => {
-                    showToast("Tâche ajoutée avec succès !");
-                    createLog("ajout", taskData.titre, `Assignée à: ${finalTaskUserEmail}`);
-
-                    taskInput.value = "";
-                    document.getElementById('detailsInput').value = "";
-                    document.getElementById('locationInput').value = "";
-                    document.getElementById('daysInput').value = "";
-                    document.getElementById('statusInput').value = "À faire";
-                    document.getElementById('calculatedDateDisplay').innerText = "-";
-                    if(assignUserInput) assignUserInput.value = "";
-                    
-                    // EmailJS envoie l'email directement à l'utilisateur ciblé (finalTaskUserEmail)
-                    if (typeof emailjs !== 'undefined') {
-                        emailjs.send("service_7c3o297", "template_mjyljr4", {
-                            user_email: finalTaskUserEmail, 
-                            title: taskData.titre,
-                            date: taskData.date,
-                            location: taskData.location,
-                            status: taskData.status
-                        }).catch(e => console.log("EmailJS Error:", e));
-                    }
-                    
-                    // Ouvre l'agenda de l'admin en y insérant automatiquement l'user comme invité
-                    window.open(window.generateCalendarLink(taskData.titre, taskData.details, taskData.location, taskData.date, finalTaskUserEmail), '_blank');
-                }).catch(err => showToast("Erreur d'ajout: " + err.message, "error"));
-            }
-        };
-    }
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('appContainer').style.display = 'flex';
-            const isAdmin = user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
-            
-            const adminNavBtn = document.getElementById('adminNavBtn');
-            if(adminNavBtn) adminNavBtn.classList.toggle('hidden', !isAdmin);
-
-            const teamTasksWidget = document.getElementById('teamTasksWidget');
-            if(teamTasksWidget) teamTasksWidget.classList.toggle('hidden', !isAdmin);
-
-            // Gérer l'affichage du select de choix des utilisateurs dans l'HTML pour l'admin
-            const adminAssignSection = document.getElementById('adminAssignSection');
-            if (adminAssignSection) {
-                adminAssignSection.classList.toggle('hidden', !isAdmin);
-            }
-
-            onValue(ref(db, 'taches'), (snapshot) => {
-                currentTasksSnapshot = snapshot;
-                if(isAdmin) {
-                    updateStats(snapshot);
-                    listenToLogs();
-                }
-                renderTasks();
-            });
-        } else {
-            document.getElementById('loginPage').classList.remove('hidden');
-            document.getElementById('appContainer').style.display = 'none';
-        }
-    });
-});
+            const isAdmin = currentAdminOrUserEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase
